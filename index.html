@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+</head>
+<body>
+<b>
+    Open the console
+</b>
+
+<script>
+    const endpoint = `ws://${window.location.host}`;
+
+    let hasError;
+    let messageId = 0;
+    let lastResponseDate = Date.now();
+    const heartbeatTimeout = 5000; // 5 seconds
+
+    const ws = new WebSocket(endpoint);
+    ws.onopen = () => {
+        console.log(`Connected to ${endpoint}`)
+        sendCurrentDate();
+    };
+    ws.onclose = ({wasClean, code, reason}) => console.log(`Closed`, {wasClean, code, reason})
+    ws.onmessage = (message) => {
+        console.log(message.data);
+        lastResponseDate = Date.now();
+    }
+    ws.onerror = (error) => {
+        hasError = true;
+        console.error('Transport error: ', error)
+        console.log('Closing WebSocket by the error')
+        ws.close();
+    };
+
+    function sendCurrentDate() {
+        if (hasError) {
+            return;
+        }
+
+        if (ws.readyState === WebSocket.OPEN) {
+            const message = `ping ${++messageId}`;
+            console.log(message);
+            ws.send(message);
+        }
+        if (ws.readyState !== WebSocket.CLOSING || ws.readyState !== WebSocket.CLOSED) {
+            setTimeout(sendCurrentDate, 1000);
+        }
+    }
+
+    let intervalId = setInterval(() => {
+        if (Date.now() - lastResponseDate > heartbeatTimeout) {
+            if (ws.readyState === WebSocket.OPEN) {
+                console.log('Closing WebSocket by the heartbeat')
+                ws.close();
+                clearInterval(intervalId);
+            }
+        }
+    }, 500)
+</script>
+</body>
+</html>
