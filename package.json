@@ -2,7 +2,7 @@
   "name": "test-websocket-closing",
   "main": "index.js",
   "scripts": {
-    "start": "node"
+    "start": "node ."
   },
   "dependencies": {
     "express": "4.17.1",
