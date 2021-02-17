@@ -1,30 +1,29 @@
 const http = require('http');
 const express = require('express');
-const WebSocket = require('ws');
+const SocketIo = require('socket.io');
 
 const app = express();
-app.use(express.static('.'));
+app.use(express.static(__dirname));
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({server});
+const io = SocketIo(server);
 
 let globalId = 0;
-wss.on('connection', ws => {
+io.on('connection', socket => {
     const id = ++globalId;
     const log = (...args) => console.log(`[Connection #${id}]`, ...args);
 
     log(`Open`);
 
-    ws.on('message', message => {
+    socket.on('message', message => {
         log(message);
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(`${message} - OK`);
-        }
+        socket.send(`${message} - OK`);
     });
-    ws.on('error', error => log('ERROR', error));
-    ws.on('close', () => log('Closed'));
+    socket.on('error', error => log('ERROR', error));
+    socket.on('disconnect', (reason) => log('Closed: ' + reason));
 });
 
-server.listen(8080, () => {
-    console.log('Server started, open http://localhost:8080');
+const port = 8081;
+server.listen(port, () => {
+    console.log(`Server started, open http://localhost:${port}`);
 })

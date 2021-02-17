@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>WebSocket Test</title>
+    <script src="https://unpkg.com/socket.io-client@3.1.1/dist/socket.io.min.js"></script>
 </head>
 <body>
 <b>
@@ -17,43 +18,43 @@
     let lastResponseDate = Date.now();
     const heartbeatTimeout = 5000; // 5 seconds
 
-    const ws = new WebSocket(endpoint);
-    ws.onopen = () => {
+    const socket = io(endpoint, {transports: ["websocket"]});
+    socket.on('connect', () => {
         console.log(`Connected to ${endpoint}`)
         sendCurrentDate();
-    };
-    ws.onclose = ({wasClean, code, reason}) => console.log(`Closed`, {wasClean, code, reason})
-    ws.onmessage = (message) => {
-        console.log(message.data);
+    });
+    socket.on('disconnect', (reason) => console.log(`Closed`, {reason}));
+    socket.on('message', (message) => {
+        console.log(message);
         lastResponseDate = Date.now();
-    }
-    ws.onerror = (error) => {
+    });
+    socket.on('connect_error', (error) => {
         hasError = true;
         console.error('Transport error: ', error)
-        console.log('Closing WebSocket by the error')
-        ws.close();
-    };
+        console.log('Closing Socket by the error')
+        socket.close();
+    });
 
     function sendCurrentDate() {
         if (hasError) {
             return;
         }
 
-        if (ws.readyState === WebSocket.OPEN) {
+        if (socket.connected) {
             const message = `ping ${++messageId}`;
             console.log(message);
-            ws.send(message);
+            socket.send(message);
         }
-        if (ws.readyState !== WebSocket.CLOSING || ws.readyState !== WebSocket.CLOSED) {
+        if (socket.connected) {
             setTimeout(sendCurrentDate, 1000);
         }
     }
 
     let intervalId = setInterval(() => {
         if (Date.now() - lastResponseDate > heartbeatTimeout) {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (socket.connected) {
                 console.log('Closing WebSocket by the heartbeat')
-                ws.close();
+                socket.close();
                 clearInterval(intervalId);
             }
         }
